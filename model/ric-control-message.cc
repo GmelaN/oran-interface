@@ -26,6 +26,12 @@
 #include <ns3/asn1c-types.h>
 #include <ns3/log.h>
 #include <bitset>
+#include <E2SM-RC-ControlMessage-Format1-Item.h>
+#include <RANParameter-ValueType.h>
+#include <RANParameter-ValueType-Choice-List.h>
+#include <RANParameter-LIST.h>
+
+
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("RicControlMessage");
@@ -115,7 +121,8 @@ RicControlMessage::DecodeRicControlMessage(E2AP_PDU_t* pdu)
                 }
 
 
-                NS_LOG_INFO (xer_fprint (stderr, &asn_DEF_E2SM_RC_ControlHeader, e2smControlHeader));
+                // NS_LOG_INFO (xer_fprint (stderr, &asn_DEF_E2SM_RC_ControlHeader, e2smControlHeader));
+                NS_LOG_DEBUG(xer_fprint(stderr, &asn_DEF_E2SM_RC_ControlHeader, e2smControlHeader));
                 if (e2smControlHeader->ric_controlHeader_formats.present == E2SM_RC_ControlHeader__ric_controlHeader_formats_PR_controlHeader_Format1) {
                     m_e2SmRcControlHeaderFormat1 = e2smControlHeader->ric_controlHeader_formats.choice.controlHeader_Format1;
                     //m_e2SmRcControlHeaderFormat1->ric_ControlAction_ID;
@@ -183,16 +190,16 @@ RicControlMessage::DecodeRicControlMessage(E2AP_PDU_t* pdu)
                         if (m_requestType == ControlMessageRequestIdType::TS)
                         {
                             // Get and parse the secondaty cell id according to 3GPP TS 38.473, Section 9.2.2.1
-                            for (RANParameterItem item : m_valuesExtracted)
-                            {
-                                if (item.m_valueType == RANParameterItem::ValueType::OctectString)
-                                {
-                                    // First 3 digits are the PLMNID (always 111), last digit is CellId
-                                    std::string cgi = item.m_valueStr->DecodeContent ();
-                                    NS_LOG_INFO ("Decoded CGI value is: " << cgi);
-                                    m_secondaryCellId = cgi.back();
-                                }
-                            }         
+                            // for (int item : m_valuesExtracted)
+                            // {
+                                // if (item.m_valueType == RANParameterItem::ValueType::OctectString)
+                                // {
+                                //     // First 3 digits are the PLMNID (always 111), last digit is CellId
+                                //     std::string cgi = item.m_valueStr->DecodeContent ();
+                                //     NS_LOG_INFO ("Decoded CGI value is: " << cgi);
+                                //     m_secondaryCellId = cgi.back();
+                                // }
+                            // }         
                         }
                     }
               
@@ -247,30 +254,244 @@ RicControlMessage::GetSecondaryCellIdHO ()
   return m_secondaryCellId;
 }
 
-/*std::vector<RANParameterItem> RicControlMessage::ExtractRANParametersFromControlMessage (
-      E2SM_RC_ControlMessage_Format1_t *e2SmRcControlMessageFormat1) 
+std::vector<int> RicControlMessage::ExtractRANParametersFromControlMessage(
+    E2SM_RC_ControlMessage_Format1_t *e2SmRcControlMessageFormat1
+)
 {
-  NS_LOG_DEBUG("***** ExtractRANParametersFromControlMessage 0 ****");
-  std::vector<RANParameterItem> ranParameterList;
-  NS_LOG_DEBUG("***** ExtractRANParametersFromControlMessage 1 *****");
+  // NS_LOG_DEBUG("***** ExtractRANParametersFromControlMessage 0 ****");
+  std::vector<int> ranParameterList;
+  // NS_LOG_DEBUG("***** ExtractRANParametersFromControlMessage 1 *****");
 
-  assert(e2SmRcControlMessageFormat1->ranP_List != nullptr && " ranParametersList is null");
-  // Not implemeted in the FlexRIC side 
+  // assert(e2SmRcControlMessageFormat1->ranP_List != nullptr && " ranParametersList is null");
+  // Not implemeted in the FlexRIC side
   int count = e2SmRcControlMessageFormat1->ranP_List.list.count;
-
-  NS_LOG_DEBUG("***** ExtractRANParametersFromControlMessage 2 *****");
+  // NS_LOG_DEBUG("***** ExtractRANParametersFromControlMessage 2 *****");
   for (int i = 0; i < count; i++)
-    {
-      RANParameter_Item_t *ranParameterItem =
+  {
+      E2SM_RC_ControlMessage_Format1_Item* ranParameterItem =
           e2SmRcControlMessageFormat1->ranP_List.list.array[i];
-      for (RANParameterItem extractedParameter :
-           RANParameterItem::ExtractRANParametersFromRANParameter (ranParameterItem))
+
+      for (int extractedParameter :
+           RicControlMessage::ExtractRANParametersFromRANParameter(ranParameterItem, true))
         {
           ranParameterList.push_back (extractedParameter);
         }
+
+        // free(ranParameterStructItem.ranParameter_valueType);
+  }
+  return ranParameterList;
+}
+
+std::vector<int> RicControlMessage::ExtractRANParametersFromRANParameter(
+      E2SM_RC_ControlMessage_Format1_Item* ranParameterItem, bool i)
+{
+  std::vector<int> ranParameterList;
+
+  // NS_LOG_DEBUG ("RAN Parameter examined:");
+  // xer_fprint (stderr, &asn_DEF_RANParameter_Item, ranParameterItem);
+  // NS_LOG_DEBUG ("----");
+  // NS_LOG_DEBUG (" ID " << ranParameterItem->ranParameterItem_ID);
+
+  switch (ranParameterItem->ranParameter_valueType.present)
+    {
+      case RANParameter_ValueType_PR_NOTHING: {
+        NS_LOG_DEBUG ("[E2SM] RANParameter_ValueType_PR_NOTHING");
+        break;
+      }
+      case RANParameter_ValueType_PR_ranP_Choice_ElementTrue: {
+        NS_LOG_DEBUG ("[E2SM] RANParameter_ValueType_PR_ranParameter_Element");
+        // RANParameter_ELEMENT_t *ranParameterElement =
+        // RANParameter_ValueType_Choice_ElementTrue_t* 
+        // RANParameter_Item_t
+        // RANParameter_ValueType_t
+        
+        RANParameter_ValueType_Choice_ElementTrue* ranParameterElement =
+            ranParameterItem->ranParameter_valueType.choice.ranP_Choice_ElementTrue;
+        
+        RANParameter_Value_t ranPar_valueType = ranParameterElement->ranParameter_value;
+        int value;
+        switch (ranPar_valueType.present)
+          {
+            case RANParameter_Value_PR_NOTHING: {
+              NS_LOG_DEBUG ("[E2SM] RANParameter_Value_PR_NOTHING");
+              break;
+            }
+            case RANParameter_Value_PR_valueInt: {
+              NS_LOG_DEBUG ("[E2SM] RANParameter_Value_PR_valueInt");
+              value = ranParameterElement->ranParameter_value.choice.valueInt;
+              NS_LOG_DEBUG ("[E2SM] Value: " << value);
+              break;
+            }
+            case RANParameter_Value_PR_valueBoolean : {
+              break;
+            }
+            case RANParameter_Value_PR_valueOctS: {
+              NS_LOG_DEBUG ("[E2SM] RANParameter_Value_PR_valueOctS");
+              // RANParameter_ValueType_Choice_ElementTrue_t* elemTrue = ranPar_valueType->choice.ranP_Choice_ElementTrue;
+
+              // newItem.m_valueStr = Create<OctetString> (
+              //     (void *) elemTrue->ranParameter_value.choice.valueOctS.buf,
+              //     elemTrue->ranParameter_value.choice.valueOctS.size);
+              // newItem.m_valueType = ValueType::OctectString;
+              // NS_LOG_DEBUG ("[E2SM] Value: OctectString");
+              break;
+            }
+            case RANParameter_Value_PR_valueReal : 
+            case RANParameter_Value_PR_valueBitS : 
+            case RANParameter_Value_PR_valuePrintableString : {
+              break;
+            }
+          }
+        ranParameterList.push_back (value);
+        break;
+      }
+     break;
+      case RANParameter_ValueType_PR_ranP_Choice_ElementFalse : {
+        break;
+      }
+      case RANParameter_ValueType_PR_ranP_Choice_Structure: {
+        NS_LOG_DEBUG ("[E2SM] RANParameter_ValueType_PR_ranParameter_Structure");
+        // RANParameter_STRUCTURE_t *ranParameterStructure =
+        // RANParameter_ValueType_Choice_Structure_t* _ranParameterStructure = ranParameterItem->ranParameterItem_valueType->choice.ranP_Choice_Structure;
+        
+        // RANParameter_ValueType_Choice_Structure_t* _ranParameterStructure = ranParameterItem->ranParameter_valueType->choice.ranP_Choice_Structure;
+       
+        
+        //RANParameter_ValueType_Choice_Structure* ranP_Choice_Structure=
+      
+        // int count = _ranParameterStructure->ranParameter_Structure->sequence_of_ranParameters->list.count;
+        // for (int i = 0; i < count; i++)
+          // {
+          //   // RANParameter_Item_t *childRanItem =
+          //   RANParameter_STRUCTURE_Item_t *childRanItem = 
+          //       _ranParameterStructure->ranParameter_Structure->sequence_of_ranParameters->list.array[i];
+
+          //   for (RANParameterItem extractedParameter : ExtractRANParametersFromRANParameter (childRanItem))
+          //     {
+          //       ranParameterList.push_back (extractedParameter);
+          //     }
+          // }
+        break;
+      }
+      case RANParameter_ValueType_PR_ranP_Choice_List: {
+        NS_LOG_DEBUG ("[E2SM] RANParameter_ValueType_PR_ranParameter_List");
+        // No list passed for the moment from RIC, thus no parsed as case
+        // ranParameterItem->ranParameterItem_valueType->choice.ranParameter_List;
+        break;
+      }
     }
 
   return ranParameterList;
-}*/
+}
 
-} // namespace ns3
+
+// std::vector<RANParameterItem>
+// RicControlMessage::ExtractRANParametersFromRANParameter (E2SM_RC_ControlMessage_Format1_t* ranParameterItem)
+// {
+//   std::vector<RANParameterItem> ranParameterList;
+
+//   // NS_LOG_DEBUG ("RAN Parameter examined:");
+//   // xer_fprint (stderr, &asn_DEF_RANParameter_Item, ranParameterItem);
+//   // NS_LOG_DEBUG ("----");
+//   // NS_LOG_DEBUG (" ID " << ranParameterItem->ranParameterItem_ID);
+
+//   switch (ranParameterItem->ranParameter_valueType.present)
+//     {
+//       case RANParameter_ValueType_PR_NOTHING: {
+//         NS_LOG_DEBUG ("[E2SM] RANParameter_ValueType_PR_NOTHING");
+//         break;
+//       }
+//       case RANParameter_ValueType_PR_ranP_Choice_ElementTrue: {
+//         RANParameterItem newItem =
+//             RANParameterItem (ranParameterItem);
+//         NS_LOG_DEBUG ("[E2SM] RANParameter_ValueType_PR_ranParameter_Element");
+//         // RANParameter_ELEMENT_t *ranParameterElement =
+//         // RANParameter_ValueType_Choice_ElementTrue_t* 
+//         // RANParameter_Item_t
+//         // RANParameter_ValueType_t
+        
+//         // /* ????? */  ranParameterElement=
+//         //     ranParameterItem->ranParameterItem_valueType->choice.ranP_Choice_ElementTrue;
+
+//         RANParameter_ValueType_t* ranPar_valueType = ranParameterItem->ranParameter_valueType;
+//         RANParameter_ValueType_Choice_ElementTrue_t* elemTrue = ranPar_valueType->choice.ranP_Choice_ElementTrue;
+//         // newItem.m_keyFlag = &ranParameterElement->keyFlag;
+//         switch (elemTrue->ranParameter_value.present)
+//           {
+//             case RANParameter_Value_PR_NOTHING: {
+//               NS_LOG_DEBUG ("[E2SM] RANParameter_Value_PR_NOTHING");
+//               newItem.m_valueType = ValueType::Nothing;
+//               break;
+//             }
+//             case RANParameter_Value_PR_valueInt: {
+//               NS_LOG_DEBUG ("[E2SM] RANParameter_Value_PR_valueInt");
+//               // RANParameter_Value_t* ran_value = ranPar_valueType->choice.ranP_Choice_ElementTrue.ranParameter_value.choice.valueInt;
+//               RANParameter_ValueType_Choice_ElementTrue_t* elemTrue = ranPar_valueType->choice.ranP_Choice_ElementTrue;
+//               newItem.m_valueInt = elemTrue->ranParameter_value.choice.valueInt;
+//               newItem.m_valueType = ValueType::Int;
+//               NS_LOG_DEBUG ("[E2SM] Value: " << newItem.m_valueInt);
+//               break;
+//             }
+//             case RANParameter_Value_PR_valueBoolean : {
+//               break;
+//             }
+//             case RANParameter_Value_PR_valueOctS: {
+//               NS_LOG_DEBUG ("[E2SM] RANParameter_Value_PR_valueOctS");
+//               // RANParameter_ValueType_Choice_ElementTrue_t* elemTrue = ranPar_valueType->choice.ranP_Choice_ElementTrue;
+
+//               newItem.m_valueStr = Create<OctetString> (
+//                   (void *) elemTrue->ranParameter_value.choice.valueOctS.buf,
+//                   elemTrue->ranParameter_value.choice.valueOctS.size);
+//               newItem.m_valueType = ValueType::OctectString;
+//               NS_LOG_DEBUG ("[E2SM] Value: OctectString");
+//               break;
+//             }
+//             case RANParameter_Value_PR_valueReal : 
+//             case RANParameter_Value_PR_valueBitS : 
+//             case RANParameter_Value_PR_valuePrintableString : {
+//               break;
+//             }
+//           }
+//         ranParameterList.push_back (newItem);
+//         break;
+//       }
+//      break;
+//       case RANParameter_ValueType_PR_ranP_Choice_ElementFalse : {
+//         break;
+//       }
+//       case RANParameter_ValueType_PR_ranP_Choice_Structure: {
+//         NS_LOG_DEBUG ("[E2SM] RANParameter_ValueType_PR_ranParameter_Structure");
+//         // RANParameter_STRUCTURE_t *ranParameterStructure =
+//         // RANParameter_ValueType_Choice_Structure_t* _ranParameterStructure = ranParameterItem->ranParameterItem_valueType->choice.ranP_Choice_Structure;
+        
+//         RANParameter_ValueType_Choice_Structure_t* _ranParameterStructure = ranParameterItem->ranParameter_valueType->choice.ranP_Choice_Structure;
+       
+        
+//         //RANParameter_ValueType_Choice_Structure* ranP_Choice_Structure=
+      
+//         int count = _ranParameterStructure->ranParameter_Structure->sequence_of_ranParameters->list.count;
+//         for (int i = 0; i < count; i++)
+//           {
+//             // RANParameter_Item_t *childRanItem =
+//             RANParameter_STRUCTURE_Item_t *childRanItem = 
+//                 _ranParameterStructure->ranParameter_Structure->sequence_of_ranParameters->list.array[i];
+
+//             for (RANParameterItem extractedParameter : ExtractRANParametersFromRANParameter (childRanItem))
+//               {
+//                 ranParameterList.push_back (extractedParameter);
+//               }
+//           }
+//         break;
+//       }
+//       case RANParameter_ValueType_PR_ranP_Choice_List: {
+//         NS_LOG_DEBUG ("[E2SM] RANParameter_ValueType_PR_ranParameter_List");
+//         // No list passed for the moment from RIC, thus no parsed as case
+//         // ranParameterItem->ranParameterItem_valueType->choice.ranParameter_List;
+//         break;
+//       }
+//     }
+
+//   return ranParameterList;
+// }
+
+}

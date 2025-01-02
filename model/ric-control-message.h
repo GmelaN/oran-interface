@@ -52,10 +52,16 @@ namespace ns3 {
 
     ControlMessageRequestIdType m_requestType;
     
-    static std::vector<RANParameterItem> ExtractRANParametersFromControlMessage (
+    static std::vector<int> ExtractRANParametersFromControlMessage (
       E2SM_RC_ControlMessage_Format1_t *e2SmRcControlMessageFormat1);
-    
-    std::vector<RANParameterItem> m_valuesExtracted;
+
+    static std::vector<int> ExtractRANParametersFromRANParameter(
+      E2SM_RC_ControlMessage_Format1_Item* ranParameterItem, bool i);
+
+    // static std::vector<RANParameterItem> ExtractRANParametersFromRANParameter(
+    //   E2SM_RC_ControlMessage_Format1_t* ranParameterItem);
+
+    std::vector<int> m_valuesExtracted;
     RANfunctionID_t m_ranFunctionId;
     RICrequestID_t m_ricRequestId;
     RICcallProcessID_t m_ricCallProcessId;
